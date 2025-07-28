@@ -54,7 +54,7 @@ This modular design enables **fine-grained tracking**, balancing STARK’s speed
 ├── Stark/                   # Official STARK codebase (clone here)
 └── my_vot_project/          # Your tracking integration scripts
     ├── vot_stark_sam_tracker.py
-    └── checkpoints/
+    └── vot_stark_sam_tracker_conf.py
 ```
 
 ### Step 2: Set Up Environment
