@@ -28,11 +28,11 @@ This modular design enables **fine-grained tracking**, balancing STARK’s speed
 
 ## 📚 Table of Contents
 
-- [Prerequisites](#-prerequisites)
-- [Installation & Setup](#-installation--setup)
-- [Running with the VOT Toolkit](#-running-with-the-vot-toolkit)
-- [Configuration Reference](#-configuration-reference)
-- [Troubleshooting](#-troubleshooting)
+- [Prerequisites](#prerequisites)
+- [Installation and Setup](#installation-and-setup)
+- [Running with the VOT Toolkit](#running-with-the-vot-toolkit)
+- [Configuration Reference](#configuration-reference)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -45,7 +45,7 @@ This modular design enables **fine-grained tracking**, balancing STARK’s speed
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚙️ Installation and Setup
 
 ### Step 1: Organize Project Structure
 
