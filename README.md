@@ -6,6 +6,16 @@ A hybrid visual object tracker that combines STARK's transformer-based bounding 
 
 ## 📚 Table of Contents
 
+- [Overview](#-overview)
+- [Features](#-features)
+- [Prerequisites](#-prerequisites)
+- [Project Setup](#-project-setup)
+- [Running Experiments](#-running-experiments)
+- [Tracker Configuration (trackersini)](#-tracker-configuration-trackersini)
+- [Command-Line Arguments](#-command-line-arguments)
+- [Troubleshooting](#-troubleshooting)
+
+
 - [Overview](#overview)
 - [Features](#features)
 - [Prerequisites](#prerequisites)
