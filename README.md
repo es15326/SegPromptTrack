@@ -1,184 +1,153 @@
-# STARK+SAM Tracker for the VOT Toolkit
 
-A hybrid visual object tracker that combines STARK's transformer-based bounding box regression with the Segment Anything Model (SAM) for mask-level precision. This tracker is designed to plug directly into the [VOT Toolkit](https://github.com/votchallenge/vot-toolkit) for standardized evaluation.
+# STARK+SAM Tracker for VOT Evaluation
 
----
-
-## 📚 Table of Contents
-
-- [Overview](#-overview)
-- [Features](#-features)
-- [Prerequisites](#-prerequisites)
-- [Project Setup](#-project-setup)
-- [Running Experiments](#-running-experiments)
-- [Tracker Configuration (trackersini)](#-tracker-configuration-trackersini)
-- [Command-Line Arguments](#-command-line-arguments)
-- [Troubleshooting](#-troubleshooting)
-
-
-- [Overview](#overview)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Project Setup](#project-setup)
-- [Running Experiments](#running-experiments)
-- [Tracker Configuration (trackers.ini)](#tracker-configuration-trackersini)
-- [Command-Line Arguments](#command-line-arguments)
-- [Troubleshooting](#troubleshooting)
+A hybrid visual object tracker that fuses **STARK's transformer-based bounding box prediction** with **Segment Anything Model (SAM)** for pixel-accurate segmentation. This tracker is fully compatible with the [VOT Toolkit](https://github.com/votchallenge/toolkit) via the TraX protocol and is designed for easy experimentation and benchmarking.
 
 ---
 
 ## 🧠 Overview
 
-This tracker executes a **two-stage hybrid pipeline** per frame:
+The tracker employs a **two-stage pipeline** per frame:
 
-1. **Bounding Box Prediction**  
-   Uses a high-performance STARK model (`stark_s`, `stark_st`, etc.) for bounding box regression.
+1. **Bounding Box Estimation**: A STARK variant (e.g., `stark_s`, `stark_st`) predicts the object’s bounding box using transformer-based regression.
+2. **Mask Refinement**: The bounding box is passed to Meta AI’s **SAM** as a prompt to generate a high-fidelity segmentation mask.
 
-2. **Mask Generation**  
-   Passes the predicted box as a prompt to Meta AI’s **Segment Anything Model (SAM)** to refine object boundaries.
-
-Designed for seamless integration with the **VOT Toolkit** (TraX protocol), the tracker supports flexible configuration through both command-line arguments and `.ini` files.
+This modular design enables **fine-grained tracking**, balancing STARK’s speed with SAM’s precision. It supports **multi-GPU setups**, **multi-mask selection**, and **confidence filtering**, while seamlessly integrating with the VOT ecosystem.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
-- 🔄 **Hybrid Tracking**  
-  Combines STARK's transformer tracking with SAM's segmentation accuracy.
+- 🔄 **Hybrid Tracking Pipeline**: Leverages the strengths of STARK for bounding box tracking and SAM for detailed object segmentation.
+- ⚙️ **Fully Configurable**: Easily switch between different STARK variants, SAM backbones, datasets, and hardware settings.
+- 🧪 **Out-of-the-Box VOT Support**: Compatible with the [VOT toolkit](https://github.com/votchallenge/toolkit) for automatic benchmarking.
+- 🎯 **Multi-Mask Output**: Optionally enables SAM's multi-mask mode and selects the highest-scoring mask.
+- 📉 **Confidence-Based Filtering**: Suppress masks with low IoU-based confidence scores to reduce noise.
 
-- ⚙️ **Fully Configurable**  
-  Easily switch between STARK/SAM models, VOT datasets, and hardware setups.
+---
 
-- 🎛 **Confidence Filtering**  
-  Set thresholds to reject masks with low quality scores.
+## 📚 Table of Contents
 
-- 🎯 **Multi-Mask Support**  
-  Generate and auto-select the best of multiple SAM predictions.
-
-- 🧪 **VOT Toolkit Integration**  
-  Designed for direct compatibility with `vot-toolkit` evaluation workflows.
+- [Prerequisites](#-prerequisites)
+- [Installation & Setup](#-installation--setup)
+- [Running with the VOT Toolkit](#-running-with-the-vot-toolkit)
+- [Configuration Reference](#-configuration-reference)
+- [Troubleshooting](#-troubleshooting)
 
 ---
 
 ## 📋 Prerequisites
 
-- Linux OS
-- Python 3.8+
-- NVIDIA GPU + CUDA
+- Linux OS (Ubuntu recommended)
+- Python ≥ 3.8
+- NVIDIA GPU with CUDA
 - Conda or Miniconda
 
 ---
 
-## ⚙️ Project Setup
+## ⚙️ Installation & Setup
 
-### 🔹 Step 1: Recommended Directory Structure
+### Step 1: Organize Project Structure
 
-```
+```bash
 /your/projects/
-├── Stark/                   # Official STARK codebase
-├── my_vot_project/          # Your tracker scripts
-│   ├── vot_stark_sam_tracker.py
-│   ├── vot_data_preprocessing.py
-│   ├── vot.py
-│   ├── checkpoints/
-│   │   ├── sam_vit_b_01ec64.pth
-│   │   └── sam_vit_h_4b8939.pth
+├── Stark/                   # Official STARK codebase (clone here)
+└── my_vot_project/          # Your tracking integration scripts
+    ├── vot_stark_sam_tracker.py
+    └── checkpoints/
 ```
 
-### 🔹 Step 2: Configure STARK Path
-
-Edit `vot_stark_sam_tracker.py`:
-
-```python
-# Example (edit this to your actual path)
-STARK_PROJECT_PATH = "/absolute/path/to/Stark/"
-```
-
-### 🔹 Step 3: Conda Environment
+### Step 2: Set Up Environment
 
 ```bash
 conda create -n stark_sam python=3.8 -y
 conda activate stark_sam
 ```
 
-### 🔹 Step 4: Install Dependencies
+### Step 3: Install Dependencies
 
 ```bash
-# Install PyTorch (adjust version as needed)
+# Adjust PyTorch version based on your CUDA setup
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-
-# Additional dependencies
 pip install opencv-python vot-toolkit segment-anything
 ```
 
-### 🔹 Step 5: Download SAM Checkpoints
+### Step 4: Download SAM Checkpoints
 
 ```bash
-mkdir -p checkpoints/
-# ViT-B
-wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth -P checkpoints/
-# ViT-H
-wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -P checkpoints/
+# Download ViT-B or ViT-H checkpoint from Meta
+wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth -P my_vot_project/checkpoints/
+wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -P my_vot_project/checkpoints/
+```
+
+### Step 5: Link to STARK
+
+In `vot_stark_sam_tracker.py`, set the correct absolute path:
+
+```python
+# Example line to edit:
+STARK_PROJECT_PATH = "/absolute/path/to/your/projects/Stark/"
 ```
 
 ---
 
-## 🧪 Running Experiments
+## 🧪 Running with the VOT Toolkit
 
-### 1. Configure `trackers.ini`
+### Step 1: Create `trackers.ini`
 
-Place this file inside your VOT workspace. Example:
+Located in your VOT workspace. Define each tracker configuration:
 
 ```ini
 # STARK-S + SAM ViT-B
-[stark_s_sam_b_vot20]
+[stark_s_sam_b]
 label = STARK-S_SAM-B
 protocol = trax
-command = /home/user/.conda/envs/stark_sam/bin/python /path/to/my_vot_project/vot_stark_sam_tracker.py --tracker_name stark_s --sam_checkpoint /path/to/checkpoints/sam_vit_b_01ec64.pth --sam_model_type vit_b
+command = python /abs/path/my_vot_project/vot_stark_sam_tracker.py --tracker_name stark_s --sam_model_type vit_b --sam_checkpoint /abs/path/my_vot_project/checkpoints/sam_vit_b_01ec64.pth
 
-# STARK-ST + SAM ViT-H with multimask and GPU 1
-[stark_st_sam_h_multi_gpu1]
-label = STARK-ST_SAM-H_Multi_GPU1
+# STARK-ST + SAM ViT-H + multimask, GPU 1
+[stark_st_sam_h_multi]
+label = STARK-ST_SAM-H_Multi
 protocol = trax
-command = /home/user/.conda/envs/stark_sam/bin/python /path/to/my_vot_project/vot_stark_sam_tracker.py --tracker_name stark_st --sam_checkpoint /path/to/checkpoints/sam_vit_h_4b8939.pth --sam_model_type vit_h --multimask_output --gpu_id 1
+command = python /abs/path/my_vot_project/vot_stark_sam_tracker.py --tracker_name stark_st --sam_model_type vit_h --sam_checkpoint /abs/path/my_vot_project/checkpoints/sam_vit_h_4b8939.pth --multimask_output --gpu_id 1
 ```
 
-### 2. Run the Evaluation
+> 💡 You may need to replace `python` with the absolute path to your Conda environment’s `python` binary.
+
+### Step 2: Run Evaluation
 
 ```bash
 conda activate stark_sam
-vot-evaluate --workspace /absolute/path/to/vot_workspace stark_s_sam_b_vot20
+vot-evaluate --workspace /abs/path/to/vot_workspace stark_s_sam_b
 ```
 
 ---
 
-## 🛠️ Command-Line Arguments
+## 🎛️ Configuration Reference
 
-| Argument            | Description                                                                 | Default   |
-|---------------------|-----------------------------------------------------------------------------|-----------|
-| `--tracker_name`    | STARK model name (`stark_s`, `stark_st`, etc.)                              | _Required_ |
-| `--tracker_param`   | Tracker parameter variant (`baseline`, etc.)                                 | `baseline` |
-| `--sam_checkpoint`  | Path to SAM checkpoint `.pth`                                                | _Required_ |
-| `--sam_model_type`  | SAM model type (`vit_b`, `vit_l`, `vit_h`)                                   | `vit_b`   |
-| `--vot_version`     | Dataset version (e.g., `vot20`, `vot20lt`)                                   | `vot20`   |
-| `--multimask_output`| If set, outputs multiple masks and picks the best                            | `False`   |
-| `--gpu_id`          | GPU index to use                                                             | `3`       |
-| `--confidence`      | IOU threshold for mask filtering                                             | `0.6`     |
+| Argument             | Description                                                  | Default     |
+|----------------------|--------------------------------------------------------------|-------------|
+| `--tracker_name`     | STARK variant (`stark_s`, `stark_st`, etc.)                  | *Required*  |
+| `--sam_checkpoint`   | Path to SAM `.pth` weights                                    | *Required*  |
+| `--sam_model_type`   | SAM variant (`vit_b`, `vit_l`, `vit_h`)                       | `vit_b`     |
+| `--tracker_param`    | STARK parameter version (e.g., `baseline`)                    | `baseline`  |
+| `--gpu_id`           | GPU index to use                                              | `3`         |
+| `--confidence`       | IoU threshold for rejecting low-quality masks                 | `0.6`       |
+| `--multimask_output` | Enable multiple masks and select best                         | `False`     |
+| `--vot_version`      | VOT dataset version (`vot20`, `vot20lt`, etc.)                | `vot20`     |
 
 ---
 
 ## 🧯 Troubleshooting
 
-### ❗ `Unable to connect to tracker`
+### ❌ Tracker Fails to Launch
+- Ensure all paths in `trackers.ini` are absolute and valid.
+- Check that the Python executable points to the correct Conda environment.
+- Run the command manually in a terminal to get more detailed error logs.
 
-- Ensure paths in `trackers.ini` are **absolute**
-- Run the command manually to debug
-- Verify the `python` path points to your `stark_sam` conda env
+### ⚠️ RuntimeError: Error(s) in loading state_dict for Sam
+- Usually caused by mismatched SAM model type and checkpoint.
+- Ensure `--sam_model_type` matches the actual `.pth` file:
+  - `sam_vit_h_*.pth` → `--sam_model_type vit_h`
 
 ---
-
-### ❗ `RuntimeError: Error(s) in loading state_dict for Sam`
-
-- Mismatch between `--sam_model_type` and checkpoint
-- Make sure `vit_h` → `sam_vit_h_*.pth`, and so on
 
